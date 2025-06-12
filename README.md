@@ -6,8 +6,8 @@ This project consists of a Python backend API and a React frontend application.
 
 ```
 .
-├── backend/               # Python backend application
-│   ├── app/              # Application code
+├── backend/             # Python backend application
+│   ├── app/             # Application code
 │   │   ├── api/         # API endpoints
 │   │   ├── core/        # Core functionality
 │   │   ├── models/      # Database models
@@ -15,29 +15,24 @@ This project consists of a Python backend API and a React frontend application.
 │   ├── tests/           # Backend tests
 │   └── pyproject.toml   # Project metadata and dependencies
 │
-├── frontend/             # React frontend application
+├── frontend/            # React frontend application
 │   ├── public/          # Static files
 │   │   ├── index.html
 │   │   └── manifest.json
-│   ├── src/            # Source code
-│   │   ├── components/ # React components
-│   │   │   ├── common/    # Common UI components
-│   │   │   ├── layout/    # Layout components
-│   │   │   └── tree/      # Tree visualization components
-│   │   ├── constants/  # Application constants
-│   │   ├── features/   # Feature-specific code
-│   │   ├── hooks/      # Custom React hooks
-│   │   ├── pages/      # Page components
-│   │   │   ├── AnomalyAnalysis.js
-│   │   │   ├── Home.js
-│   │   │   ├── Reports.js
-│   │   │   ├── TreesList.js
-│   │   │   └── TreeView.js
-│   │   ├── services/   # API services
-│   │   ├── theme/      # Theme configuration
-│   │   ├── types/      # TypeScript type definitions
-│   │   └── utils/      # Utility functions
-│   └── package.json    # Node.js dependencies
+│   ├── src/             # Source code
+│   │   ├── components/  # React components
+│   │   │   ├── common/  # Common UI components
+│   │   │   ├── layout/  # Layout components
+│   │   │   └── tree/    # Tree visualization components
+│   │   ├── constants/   # Application constants
+│   │   ├── features/    # Feature-specific code
+│   │   ├── hooks/       # Custom React hooks
+│   │   ├── pages/       # Page components
+│   │   ├── services/    # API services
+│   │   ├── theme/       # Theme configuration
+│   │   ├── types/       # TypeScript type definitions
+│   │   └── utils/       # Utility functions
+│   └── package.json     # Node.js dependencies
 ```
 
 ## Setup Instructions

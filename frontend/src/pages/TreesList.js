@@ -11,6 +11,8 @@ import {
   CardContent,
   CardActions
 } from '../components/common/StyledComponents';
+import UploadTreeModal from '../components/modals/UploadTreeModal';
+import haystackData from '../data/haystack_test.json';
 
 const SearchInput = styled.input`
   padding: ${({ theme }) => theme.spacing.sm};
@@ -22,26 +24,25 @@ const SearchInput = styled.input`
 // Mock data - в реальном приложении это будет приходить с бэкенда
 const mockTrees = [
   {
-    id: 'tree_123',
-    name: 'Family Tree #1',
-    individuals: 150,
-    families: 45,
-    anomalies: 3
-  },
-  {
-    id: 'tree_456',
-    name: 'Family Tree #2',
-    individuals: 200,
-    families: 60,
-    anomalies: 5
+    id: haystackData[0].family_id,
+    name: 'Дерево из haystack_test.json',
+    individuals: haystackData.length,
+    families: 1,
+    anomalies: 0
   }
 ];
 
 const TreesList = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
 
   const handleSearch = (event) => {
     setSearchQuery(event.target.value);
+  };
+
+  const handleUpload = (file) => {
+    // TODO: Implement file upload logic
+    console.log('Uploading file:', file);
   };
 
   const filteredTrees = mockTrees.filter(tree => 
@@ -60,9 +61,9 @@ const TreesList = () => {
             value={searchQuery}
             onChange={handleSearch}
           />
-          <Link to="/tree/new">
-            <Button className="primary">Upload New Tree</Button>
-          </Link>
+          <Button className="primary" onClick={() => setIsUploadModalOpen(true)}>
+            Upload New Tree
+          </Button>
         </Controls>
       </Header>
 
@@ -92,6 +93,12 @@ const TreesList = () => {
           </Card>
         ))}
       </Grid>
+
+      <UploadTreeModal
+        isOpen={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={handleUpload}
+      />
     </div>
   );
 };

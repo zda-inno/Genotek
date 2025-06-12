@@ -42,8 +42,8 @@ const NavLink = styled(Link)`
 `;
 
 const Main = styled.main`
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100vw;
+  margin: 0;
   padding: ${({ theme }) => theme.spacing.xl};
 `;
 
@@ -75,11 +75,6 @@ const MainLayout = () => {
             <li>
               <NavLink to="/" className={isActive('/') ? 'active' : ''}>
                 Trees List
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/tree/new" className={isActive('/tree/new') ? 'active' : ''}>
-                Upload Tree
               </NavLink>
             </li>
           </ul>

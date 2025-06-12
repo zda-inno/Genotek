@@ -1,16 +1,11 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import TreeVisualization from '../components/tree/TreeVisualization';
+import { Button } from '../components/common/StyledComponents';
+import FamilyTreeD3 from '../components/FamilyTreeD3';
+import haystackData from '../data/haystack_test.json';
 
 const Header = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-`;
-
-const Controls = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  align-items: center;
   margin-bottom: ${({ theme }) => theme.spacing.xl};
 `;
 
@@ -18,9 +13,13 @@ const Container = styled.div`
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: ${({ theme }) => theme.spacing.xl};
+  height: 70vh;
+  min-height: 600px;
+  width: 100%;
 
   @media (max-width: ${({ theme }) => theme.breakpoints.mobile}) {
     grid-template-columns: 1fr;
+    height: auto;
   }
 `;
 
@@ -28,8 +27,12 @@ const Visualization = styled.div`
   background-color: ${({ theme }) => theme.colors.white};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   box-shadow: ${({ theme }) => theme.shadows.sm};
-  padding: ${({ theme }) => theme.spacing.lg};
-  min-height: 500px;
+  padding: 0;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
 `;
 
 const Stats = styled.div`
@@ -51,26 +54,29 @@ const StatsSection = styled.div`
   }
 `;
 
+const ActionsSection = styled(StatsSection)`
+  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  padding-top: ${({ theme }) => theme.spacing.lg};
+  margin-top: ${({ theme }) => theme.spacing.lg};
+`;
+
 const TreeView = () => {
   const { treeId } = useParams();
+
+  const handleExport = () => {
+    // TODO: Implement export functionality
+    console.log('Exporting tree:', treeId);
+  };
 
   return (
     <div>
       <Header>
         <h1>Tree Visualization</h1>
-        <Controls>
-          <input
-            type="file"
-            accept=".ged"
-          />
-          <button>Upload GEDCOM</button>
-          <button>Export GEDCOM</button>
-        </Controls>
       </Header>
 
       <Container>
         <Visualization>
-          <TreeVisualization treeId={treeId} />
+          <FamilyTreeD3 data={haystackData} />
         </Visualization>
         <Stats>
           <StatsSection>
@@ -88,6 +94,12 @@ const TreeView = () => {
               <p>Relationship Conflicts: 1</p>
             </div>
           </StatsSection>
+          <ActionsSection>
+            <h3>Actions</h3>
+            <Button className="secondary" onClick={handleExport}>
+              Export GEDCOM
+            </Button>
+          </ActionsSection>
         </Stats>
       </Container>
     </div>
