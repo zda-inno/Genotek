@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Set
 from datetime import datetime
 from pydantic import BaseModel
 import calendar
@@ -14,22 +14,27 @@ class BasicChecksResponse(BaseModel):
         "missing_birthdate": {
             "is_it": False,
             "count": 0,
-            "persons": []  # {person: str, missing_fields: List[str]}
+            "persons": []
         },
         "invalid_date": {
             "is_it": False,
             "count": 0,
-            "persons": []  # {person: str, birthdate: dict, error: str}
+            "persons": []
         },
         "isolated_person": {
             "is_it": False,
             "count": 0,
-            "persons": []  # {person: str, person_id: str}
+            "persons": []
         },
         "non_reciprocal_relation": {
             "is_it": False,
             "count": 0,
-            "relations": []  # {person_a: str, person_b: str, relation: str, expected: str}
+            "relations": []
+        },
+        "circular_relationship": {
+            "is_it": False,
+            "count": 0,
+            "cycles": []
         }
     }
 
@@ -137,7 +142,7 @@ async def check_family_tree_basic(
             
         full_name = f"{person_data.get('surname', '')} {person_data.get('name', '')} {person_data.get('middleName', '')}".strip()
         
-        # Пропускаем если какие-то поля отсутствуют (уже проверено)
+        # Пропускаем если какие-то поля отсутствуют
         if any(key not in birthdate or birthdate[key] is None for key in ["day", "month", "year"]):
             continue
 
@@ -220,5 +225,103 @@ async def check_family_tree_basic(
                 "error": error
             })
             processed_pairs.add(pair_key)
+
+    # Проверка 5: Циклические связи
+    # Инициализация графов
+    detailed_graph = {pid: {} for pid in all_person_ids}  # Для хранения типов отношений
+    directed_graph = {pid: [] for pid in all_person_ids}  # Для поиска циклов
+    
+    # Построение графов
+    for person_data in persons_data:
+        current_id = person_data["person_id"]
+        for rel in person_data["relatives"]:
+            rel_id = rel["person_id"]
+            if rel_id not in all_person_ids:
+                continue
+            relation_type = rel["relationType"]
+            
+            if relation_type == "parent":
+                # Родитель (rel_id) -> ребенок (current_id)
+                if current_id not in detailed_graph[rel_id]:
+                    detailed_graph[rel_id][current_id] = set()
+                detailed_graph[rel_id][current_id].add("parent")
+                directed_graph[rel_id].append(current_id)
+                
+            elif relation_type == "child":
+                # Ребенок (rel_id) <- родитель (current_id)
+                if rel_id not in detailed_graph[current_id]:
+                    detailed_graph[current_id][rel_id] = set()
+                detailed_graph[current_id][rel_id].add("parent")
+                directed_graph[current_id].append(rel_id)
+                
+            elif relation_type == "spouse":
+                # Двунаправленная связь
+                if rel_id not in detailed_graph[current_id]:
+                    detailed_graph[current_id][rel_id] = set()
+                detailed_graph[current_id][rel_id].add("spouse")
+                directed_graph[current_id].append(rel_id)
+                
+                if current_id not in detailed_graph[rel_id]:
+                    detailed_graph[rel_id][current_id] = set()
+                detailed_graph[rel_id][current_id].add("spouse")
+                directed_graph[rel_id].append(current_id)
+
+    # Поиск циклов с помощью DFS
+    color = {node: 0 for node in directed_graph}  # 0=белый, 1=серый, 2=черный
+    cycles = set()
+    path_stack = []
+    
+    def dfs(node):
+        color[node] = 1
+        path_stack.append(node)
+        
+        for neighbor in directed_graph[node]:
+            if color[neighbor] == 0:
+                dfs(neighbor)
+            elif color[neighbor] == 1:
+                # Обнаружен цикл
+                idx = path_stack.index(neighbor)
+                cycle_tuple = tuple(path_stack[idx:])
+                cycles.add(cycle_tuple)
+                
+        path_stack.pop()
+        color[node] = 2
+    
+    # Запуск DFS для всех узлов
+    for node in directed_graph:
+        if color[node] == 0:
+            dfs(node)
+    
+    # Фильтрация циклов (исключаем допустимые циклы из двух супругов)
+    problematic_cycles = []
+    for cycle in cycles:
+        if len(cycle) == 2:
+            a, b = cycle
+            # Проверяем что связь двусторонняя и только супружеская
+            if (b in detailed_graph[a] and 
+                a in detailed_graph[b] and 
+                "spouse" in detailed_graph[a][b] and 
+                "spouse" in detailed_graph[b][a] and 
+                len(detailed_graph[a][b]) == 1 and 
+                len(detailed_graph[b][a]) == 1):
+                continue  # Пропускаем допустимый цикл супругов
+        problematic_cycles.append(cycle)
+    
+    # Добавляем найденные проблемные циклы в результат
+    if problematic_cycles:
+        result.result = 1
+        result.checks["circular_relationship"]["is_it"] = True
+        result.checks["circular_relationship"]["count"] = len(problematic_cycles)
+        
+        for cycle in problematic_cycles:
+            cycle_info = []
+            for person_id in cycle:
+                p = persons_by_id[person_id]
+                full_name = f"{p.get('surname', '')} {p.get('name', '')} {p.get('middleName', '')}".strip()
+                cycle_info.append({
+                    "person_id": person_id,
+                    "full_name": full_name
+                })
+            result.checks["circular_relationship"]["cycles"].append(cycle_info)
 
     return result
