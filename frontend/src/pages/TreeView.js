@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { Button } from '../components/common/StyledComponents';
 import FamilyTreeD3 from '../components/FamilyTreeD3';
@@ -62,10 +62,15 @@ const ActionsSection = styled(StatsSection)`
 
 const TreeView = () => {
   const { treeId } = useParams();
+  const navigate = useNavigate();
 
   const handleExport = () => {
     // TODO: Implement export functionality
     console.log('Exporting tree:', treeId);
+  };
+
+  const handleAnalyze = () => {
+    navigate(`/anomaly-analysis/${treeId}`);
   };
 
   return (
@@ -96,9 +101,14 @@ const TreeView = () => {
           </StatsSection>
           <ActionsSection>
             <h3>Actions</h3>
-            <Button className="secondary" onClick={handleExport}>
-              Export GEDCOM
-            </Button>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <Button onClick={handleAnalyze}>
+                Analyze Tree
+              </Button>
+              <Button className="secondary" onClick={handleExport}>
+                Export GEDCOM
+              </Button>
+            </div>
           </ActionsSection>
         </Stats>
       </Container>
