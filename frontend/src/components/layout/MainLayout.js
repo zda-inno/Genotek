@@ -34,10 +34,15 @@ const NavLink = styled(Link)`
   text-decoration: none;
   padding: ${({ theme }) => theme.spacing.sm} ${({ theme }) => theme.spacing.md};
   border-radius: ${({ theme }) => theme.borderRadius.sm};
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.primary};
+    background-color: ${({ theme }) => theme.colors.primaryDark};
+  }
+
+  &.active {
+    background-color: ${({ theme }) => theme.colors.primaryDark};
+    font-weight: bold;
   }
 `;
 
@@ -45,6 +50,7 @@ const Main = styled.main`
   width: 100vw;
   margin: 0;
   padding: ${({ theme }) => theme.spacing.xl};
+  margin-bottom: 60px; /* Add space for footer */
 `;
 
 const Footer = styled.footer`
@@ -89,7 +95,7 @@ const MainLayout = () => {
         <Outlet />
       </Main>
       <Footer>
-        <p>&copy; 2024 Genotek. All rights reserved.</p>
+        <p>&copy; 2025 Genotek. All rights reserved.</p>
       </Footer>
     </div>
   );

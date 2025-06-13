@@ -8,6 +8,7 @@ import TreesList from './pages/TreesList';
 import TreeView from './pages/TreeView';
 import AnomalyAnalysis from './pages/AnomalyAnalysis';
 import Reports from './pages/Reports';
+import TreeCheck from './pages/TreeCheck';
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="tree/:treeId" element={<TreeView />} />
             <Route path="anomaly-analysis/:treeId" element={<AnomalyAnalysis />} />
             <Route path="reports/:treeId" element={<Reports />} />
+            <Route path="check" element={<TreeCheck />} />
           </Route>
         </Routes>
       </Router>
