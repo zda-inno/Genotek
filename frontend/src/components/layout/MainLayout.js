@@ -77,6 +77,11 @@ const MainLayout = () => {
                 Trees List
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/tree/new" className={isActive('/tree/new') ? 'active' : ''}>
+                Upload Tree
+              </NavLink>
+            </li>
           </ul>
         </Nav>
       </Header>
