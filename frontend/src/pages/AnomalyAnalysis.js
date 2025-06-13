@@ -25,25 +25,89 @@ const Section = styled.div`
   margin-bottom: ${({ theme }) => theme.spacing.lg};
 `;
 
-const AnomalyList = styled.div`
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: ${({ theme }) => theme.spacing.lg};
+  margin-bottom: ${({ theme }) => theme.spacing.lg};
+`;
+
+const StatCard = styled.div`
+  background-color: ${({ theme }) => theme.colors.background};
+  padding: ${({ theme }) => theme.spacing.lg};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
+  text-align: center;
+
+  h3 {
+    margin: 0 0 ${({ theme }) => theme.spacing.sm} 0;
+    color: ${({ theme }) => theme.colors.text};
+    font-size: 0.9rem;
+    text-transform: uppercase;
+  }
+
+  .value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: ${({ theme, severity }) => {
+      switch (severity) {
+        case 'critical':
+          return theme.colors.error;
+        case 'warning':
+          return theme.colors.warning;
+        case 'info':
+          return theme.colors.info;
+        default:
+          return theme.colors.primary;
+      }
+    }};
+  }
+`;
+
+const CheckList = styled.div`
   display: grid;
   gap: ${({ theme }) => theme.spacing.md};
 `;
 
-const AnomalyItem = styled.div`
-  padding: ${({ theme }) => theme.spacing.md};
+const CheckItem = styled.div`
+  padding: ${({ theme }) => theme.spacing.lg};
   border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  border-radius: ${({ theme }) => theme.borderRadius.md};
   background-color: ${({ theme }) => theme.colors.background};
 
   h4 {
     margin: 0 0 ${({ theme }) => theme.spacing.sm} 0;
-    color: ${({ theme }) => theme.colors.error};
+    color: ${({ theme, hasIssues }) => hasIssues ? theme.colors.error : theme.colors.success};
   }
 
-  p {
-    margin: 0;
+  .description {
+    margin: ${({ theme }) => theme.spacing.sm} 0;
     color: ${({ theme }) => theme.colors.text};
+  }
+
+  .persons-list {
+    margin-top: ${({ theme }) => theme.spacing.sm};
+    display: flex;
+    flex-direction: column;
+    gap: ${({ theme }) => theme.spacing.sm};
+  }
+
+  .person-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: ${({ theme }) => theme.spacing.sm};
+    background-color: ${({ theme }) => theme.colors.primaryLight};
+    border-radius: ${({ theme }) => theme.borderRadius.sm};
+    
+    .name {
+      color: ${({ theme }) => theme.colors.primary};
+      font-weight: 500;
+    }
+    
+    .age {
+      color: ${({ theme }) => theme.colors.text};
+      font-size: 0.9rem;
+    }
   }
 `;
 
@@ -60,6 +124,22 @@ const ErrorMessage = styled.div`
   background-color: ${({ theme }) => theme.colors.errorLight};
   border-radius: ${({ theme }) => theme.borderRadius.md};
 `;
+
+const getCheckTitle = (checkName) => {
+  const titles = {
+    negative_age: 'Negative Age Check',
+    large_age: 'Large Age Check'
+  };
+  return titles[checkName] || checkName;
+};
+
+const getCheckDescription = (checkName) => {
+  const descriptions = {
+    negative_age: 'Checks for persons with negative age values',
+    large_age: 'Checks for persons with unusually large age values'
+  };
+  return descriptions[checkName] || '';
+};
 
 const AnomalyAnalysis = () => {
   const { treeId } = useParams();
@@ -85,6 +165,11 @@ const AnomalyAnalysis = () => {
 
   const handleBack = () => {
     navigate(`/tree/${treeId}`);
+  };
+
+  const getTotalIssues = () => {
+    if (!analysis?.checks) return 0;
+    return Object.values(analysis.checks).filter(check => check.is_it).length;
   };
 
   if (loading) {
@@ -116,25 +201,41 @@ const AnomalyAnalysis = () => {
 
       <Section>
         <h2>Summary</h2>
-        <p>Total Anomalies Found: {analysis?.anomalies?.length || 0}</p>
+        <StatsGrid>
+          <StatCard>
+            <h3>Total Issues Found</h3>
+            <div className="value">{getTotalIssues()}</div>
+          </StatCard>
+          <StatCard>
+            <h3>Checks Performed</h3>
+            <div className="value">{Object.keys(analysis?.checks || {}).length}</div>
+          </StatCard>
+        </StatsGrid>
       </Section>
 
       <Section>
-        <h2>Anomalies</h2>
-        <AnomalyList>
-          {analysis?.anomalies?.map((anomaly, index) => (
-            <AnomalyItem key={index}>
-              <h4>{anomaly.type}</h4>
-              <p>{anomaly.description}</p>
-              {anomaly.affected_persons && (
-                <p>Affected persons: {anomaly.affected_persons.join(', ')}</p>
+        <h2>Detailed Analysis</h2>
+        <CheckList>
+          {analysis?.checks && Object.entries(analysis.checks).map(([checkName, check]) => (
+            <CheckItem key={checkName} hasIssues={check.is_it}>
+              <h4>{getCheckTitle(checkName)}</h4>
+              <p className="description">{getCheckDescription(checkName)}</p>
+              {check.is_it && check.persons && check.persons.length > 0 && (
+                <div className="persons-list">
+                  {check.persons.map((person, index) => (
+                    <div key={index} className="person-item">
+                      <span className="name">{person.person}</span>
+                      {person.age && <span className="age">{person.age} years</span>}
+                    </div>
+                  ))}
+                </div>
               )}
-            </AnomalyItem>
+              {!check.is_it && (
+                <p className="description">No issues found</p>
+              )}
+            </CheckItem>
           ))}
-          {(!analysis?.anomalies || analysis.anomalies.length === 0) && (
-            <p>No anomalies found in this tree.</p>
-          )}
-        </AnomalyList>
+        </CheckList>
       </Section>
     </Container>
   );
