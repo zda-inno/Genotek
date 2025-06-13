@@ -48,18 +48,7 @@ const StatCard = styled.div`
   .value {
     font-size: 2rem;
     font-weight: bold;
-    color: ${({ theme, severity }) => {
-      switch (severity) {
-        case 'critical':
-          return theme.colors.error;
-        case 'warning':
-          return theme.colors.warning;
-        case 'info':
-          return theme.colors.info;
-        default:
-          return theme.colors.primary;
-      }
-    }};
+    color: ${({ theme, hasIssues }) => hasIssues ? theme.colors.error : theme.colors.success};
   }
 `;
 
@@ -84,29 +73,45 @@ const CheckItem = styled.div`
     color: ${({ theme }) => theme.colors.text};
   }
 
-  .persons-list {
-    margin-top: ${({ theme }) => theme.spacing.sm};
-    display: flex;
-    flex-direction: column;
-    gap: ${({ theme }) => theme.spacing.sm};
+  .count {
+    margin: ${({ theme }) => theme.spacing.sm} 0;
+    font-weight: 500;
+    color: ${({ theme }) => theme.colors.text};
   }
+`;
 
-  .person-item {
+const PersonsList = styled.div`
+  margin-top: ${({ theme }) => theme.spacing.md};
+  display: grid;
+  gap: ${({ theme }) => theme.spacing.sm};
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: ${({ theme }) => theme.spacing.sm};
+`;
+
+const PersonItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: ${({ theme }) => theme.spacing.sm};
+  background-color: ${({ theme }) => theme.colors.primaryLight};
+  border-radius: ${({ theme }) => theme.borderRadius.sm};
+  
+  .name {
+    color: ${({ theme }) => theme.colors.primary};
+    font-weight: 500;
+  }
+  
+  .missing-fields {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${({ theme }) => theme.spacing.sm};
-    background-color: ${({ theme }) => theme.colors.primaryLight};
-    border-radius: ${({ theme }) => theme.borderRadius.sm};
+    gap: ${({ theme }) => theme.spacing.xs};
     
-    .name {
-      color: ${({ theme }) => theme.colors.primary};
-      font-weight: 500;
-    }
-    
-    .age {
-      color: ${({ theme }) => theme.colors.text};
-      font-size: 0.9rem;
+    span {
+      background-color: ${({ theme }) => theme.colors.errorLight};
+      color: ${({ theme }) => theme.colors.error};
+      padding: 2px 8px;
+      border-radius: ${({ theme }) => theme.borderRadius.sm};
+      font-size: 0.8rem;
     }
   }
 `;
@@ -127,16 +132,20 @@ const ErrorMessage = styled.div`
 
 const getCheckTitle = (checkName) => {
   const titles = {
-    negative_age: 'Negative Age Check',
-    large_age: 'Large Age Check'
+    missing_birthdate: 'Missing Birth Date',
+    invalid_date: 'Invalid Date',
+    isolated_person: 'Isolated Person',
+    non_reciprocal_relation: 'Non-Reciprocal Relation'
   };
   return titles[checkName] || checkName;
 };
 
 const getCheckDescription = (checkName) => {
   const descriptions = {
-    negative_age: 'Checks for persons with negative age values',
-    large_age: 'Checks for persons with unusually large age values'
+    missing_birthdate: 'Persons with missing birth date information',
+    invalid_date: 'Persons with invalid date values',
+    isolated_person: 'Persons without any family connections',
+    non_reciprocal_relation: 'Relationships that are not properly reciprocated'
   };
   return descriptions[checkName] || '';
 };
@@ -170,6 +179,13 @@ const AnomalyAnalysis = () => {
   const getTotalIssues = () => {
     if (!analysis?.checks) return 0;
     return Object.values(analysis.checks).filter(check => check.is_it).length;
+  };
+
+  const getTotalAffectedPersons = () => {
+    if (!analysis?.checks) return 0;
+    return Object.values(analysis.checks).reduce((total, check) => {
+      return total + (check.persons?.length || 0);
+    }, 0);
   };
 
   if (loading) {
@@ -207,6 +223,10 @@ const AnomalyAnalysis = () => {
             <div className="value">{getTotalIssues()}</div>
           </StatCard>
           <StatCard>
+            <h3>Affected Persons</h3>
+            <div className="value">{getTotalAffectedPersons()}</div>
+          </StatCard>
+          <StatCard>
             <h3>Checks Performed</h3>
             <div className="value">{Object.keys(analysis?.checks || {}).length}</div>
           </StatCard>
@@ -220,15 +240,26 @@ const AnomalyAnalysis = () => {
             <CheckItem key={checkName} hasIssues={check.is_it}>
               <h4>{getCheckTitle(checkName)}</h4>
               <p className="description">{getCheckDescription(checkName)}</p>
-              {check.is_it && check.persons && check.persons.length > 0 && (
-                <div className="persons-list">
-                  {check.persons.map((person, index) => (
-                    <div key={index} className="person-item">
-                      <span className="name">{person.person}</span>
-                      {person.age && <span className="age">{person.age} years</span>}
-                    </div>
-                  ))}
-                </div>
+              {check.is_it && (
+                <>
+                  <p className="count">Found {check.count} issues</p>
+                  {check.persons && check.persons.length > 0 && (
+                    <PersonsList>
+                      {check.persons.map((person, index) => (
+                        <PersonItem key={index}>
+                          <span className="name">{person.person}</span>
+                          {person.missing_fields && (
+                            <div className="missing-fields">
+                              {person.missing_fields.map((field, idx) => (
+                                <span key={idx}>{field}</span>
+                              ))}
+                            </div>
+                          )}
+                        </PersonItem>
+                      ))}
+                    </PersonsList>
+                  )}
+                </>
               )}
               {!check.is_it && (
                 <p className="description">No issues found</p>
