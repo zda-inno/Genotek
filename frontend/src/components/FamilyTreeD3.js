@@ -16,367 +16,222 @@ const FamilyTreeD3 = ({ data }) => {
   const svgRef = useRef();
   const containerRef = useRef();
 
-  // Создаем семейные единицы
+  // 1) Создаем семейные юниты (couple/single) и привязку детей, затем объединяем многобрачие
   const createFamilyUnits = (people) => {
-    if (!people || !people.length) return { units: new Map(), personToUnitMap: new Map() };
+    if (!people || !people.length) return { units: new Map(), personToUnitsMap: new Map() };
 
     const personMap = new Map(people.map(p => [p.person_id, p]));
     const units = new Map();
-    const processed = new Set();
-    const personToUnitMap = new Map();
+    const personToUnitsMap = new Map();
+    people.forEach(person => personToUnitsMap.set(person.person_id, []));
 
-    // Создаем единицы для пар
+    // Супружеские пары
     people.forEach(person => {
-      if (processed.has(person.person_id)) return;
-
-      const spouseRel = person.relatives?.find(r =>
-        r.relationType === 'spouse' &&
-        personMap.has(r.person_id)
-      );
-
-      if (spouseRel) {
-        const spouse = personMap.get(spouseRel.person_id);
-        if (!spouse) return;
-
-        const unitId = [person.person_id, spouse.person_id].sort().join('_');
-        const unit = {
-          id: unitId,
-          type: 'couple',
-          partners: [person, spouse],
-          children: new Set()
-        };
-        units.set(unitId, unit);
-        processed.add(person.person_id);
-        processed.add(spouse.person_id);
-        personToUnitMap.set(person.person_id, unit);
-        personToUnitMap.set(spouse.person_id, unit);
-      } else {
-        const unit = {
-          id: person.person_id,
-          type: 'single',
-          person: person,
-          children: new Set()
-        };
-        units.set(person.person_id, unit);
-        processed.add(person.person_id);
-        personToUnitMap.set(person.person_id, unit);
-      }
-    });
-
-    // Добавляем детей
-    people.forEach(person => {
-      const parentRels = person.relatives?.filter(r => r.relationType === 'parent') || [];
-      parentRels.forEach(rel => {
-        const parentUnit = personToUnitMap.get(rel.person_id);
-        if (parentUnit) {
-          parentUnit.children.add(person.person_id);
+      const spouses = person.relatives?.filter(r => r.relationType === 'spouse') || [];
+      spouses.forEach(rel => {
+        const sp = personMap.get(rel.person_id);
+        if (!sp) return;
+        const id = [person.person_id, sp.person_id].sort().join('_');
+        if (!units.has(id)) {
+          const unit = { id, type: 'couple', partners: [person, sp], children: new Set() };
+          units.set(id, unit);
+          personToUnitsMap.get(person.person_id).push(unit);
+          personToUnitsMap.get(sp.person_id).push(unit);
         }
       });
     });
 
-    return { units, personToUnitMap };
+    // Одиночки
+    people.forEach(person => {
+      if (personToUnitsMap.get(person.person_id).length === 0) {
+        const unit = { id: person.person_id, type: 'single', person, children: new Set() };
+        units.set(person.person_id, unit);
+        personToUnitsMap.get(person.person_id).push(unit);
+      }
+    });
+
+    // Дети
+    people.forEach(person => {
+      const parents = person.relatives?.filter(r => r.relationType === 'parent').map(r => r.person_id) || [];
+      if (!parents.length) return;
+      let target;
+      if (parents.length === 1) {
+        const up = personToUnitsMap.get(parents[0]);
+        target = up.find(x => x.type === 'single') || up[0];
+      } else {
+        const pid = parents.sort().join('_');
+        target = units.get(pid);
+        if (!target) {
+          const [p1, p2] = parents;
+          const newU = { id: pid, type: 'couple', partners: [personMap.get(p1), personMap.get(p2)], children: new Set() };
+          units.set(pid, newU);
+          personToUnitsMap.get(p1).push(newU);
+          personToUnitsMap.get(p2).push(newU);
+          target = newU;
+        }
+      }
+      if (target) target.children.add(person.person_id);
+    });
+
+    // Объединяем все браки одного человека в один юнит
+    for (const [pid, ulist] of personToUnitsMap.entries()) {
+      const spouseUnits = ulist.filter(u => u.type === 'couple');
+      if (spouseUnits.length <= 1) continue;
+
+      const main = spouseUnits[0];
+      const allIds = new Set([pid]);
+      spouseUnits.forEach(u => u.partners.forEach(p => allIds.add(p.person_id)));
+
+      main.partners = Array.from(allIds).map(id => personMap.get(id));
+      const combinedChildren = new Set();
+      spouseUnits.forEach(u => u.children.forEach(ch => combinedChildren.add(ch)));
+      main.children = combinedChildren;
+
+      // Удаляем лишние юниты
+      for (let i = 1; i < spouseUnits.length; i++) {
+        const u = spouseUnits[i];
+        units.delete(u.id);
+        u.partners.forEach(p => {
+          const arr = personToUnitsMap.get(p.person_id);
+          const idx = arr.indexOf(u);
+          if (idx >= 0) arr.splice(idx, 1);
+        });
+      }
+
+      units.delete(main.id);
+      const newId = Array.from(allIds).sort().join('_');
+      main.id = newId;
+      units.set(newId, main);
+    }
+
+    return { units, personToUnitsMap };
   };
 
-  // Строим иерархию с объединением родителей
-  const buildHierarchy = (units, personToUnitMap) => {
-    if (!units || !units.size) return { id: '__ROOT__', children: [] };
+  // 2) Строим иерархию с невидимым корнем
+  const buildHierarchy = (units, personToUnitsMap) => {
+    if (!units.size) return { id: '__ROOT__', children: [] };
 
-    const unitMap = new Map([...units].map(([id, unit]) => [id, unit]));
     const childrenMap = new Map();
     const parentMap = new Map();
-    const visited = new Set();
 
-    // Собираем связи родитель-ребенок
-    units.forEach(unit => {
-      unit.children.forEach(childId => {
-        const childUnit = personToUnitMap.get(childId);
-        if (!childUnit) return;
-
-        if (!childrenMap.has(unit.id)) {
-          childrenMap.set(unit.id, []);
-        }
-        childrenMap.get(unit.id).push(childUnit.id);
-
-        if (!parentMap.has(childUnit.id)) {
-          parentMap.set(childUnit.id, []);
-        }
-        parentMap.get(childUnit.id).push(unit.id);
+    // связи родитель → ребёнок
+    for (const [uid, u] of units) {
+      u.children.forEach(pid => {
+        const cUnits = personToUnitsMap.get(pid) || [];
+        if (!cUnits.length) return;
+        const childUnit = cUnits.find(x => x.type === 'single') || cUnits[0];
+        childrenMap.set(uid, [...(childrenMap.get(uid) || []), childUnit.id]);
+        parentMap.set(childUnit.id, [...(parentMap.get(childUnit.id) || []), uid]);
       });
-    });
+    }
 
-    // Находим корни
-    const roots = [];
-    units.forEach((unit, id) => {
-      if (!parentMap.has(id)) {
-        roots.push(id);
-      }
-    });
+    // все корневые юниты без родителей прикрепляем к __ROOT__
+    const roots = Array.from(units.keys()).filter(id => !parentMap.has(id));
 
-    // Рекурсивное построение с объединением
-    const buildNode = (unitId) => {
-      if (visited.has(unitId)) return null;
-      visited.add(unitId);
-
-      const unit = unitMap.get(unitId);
-      if (!unit) return null;
-
-      const node = {
-        id: unitId,
-        unitData: unit,
-        children: []
-      };
-
-      // Собираем всех родителей текущего узла
-      const allParents = [];
-      if (unit.type === 'couple') {
-        unit.partners.forEach(partner => {
-          const parentRels = partner.relatives?.filter(r => r.relationType === 'parent') || [];
-          parentRels.forEach(rel => {
-            const parentUnit = personToUnitMap.get(rel.person_id);
-            if (parentUnit && !visited.has(parentUnit.id)) {
-              allParents.push(parentUnit.id);
-            }
-          });
-        });
-      }
-
-      // Создаем искусственный узел для объединения родителей
-      if (allParents.length > 0) {
-        const parentUnion = {
-          id: `union_${unitId}`,
-          type: 'union',
-          children: []
-        };
-
-        allParents.forEach(parentId => {
-          const parentNode = buildNode(parentId);
-          if (parentNode) {
-            parentUnion.children.push(parentNode);
-          }
-        });
-
-        if (parentUnion.children.length > 0) {
-          node.children.push(parentUnion);
-        }
-      }
-
-      // Добавляем детей
-      if (childrenMap.has(unitId)) {
-        childrenMap.get(unitId).forEach(childId => {
-          const childNode = buildNode(childId);
-          if (childNode) {
-            node.children.push(childNode);
-          }
-        });
-      }
-
-      return node;
+    const buildNode = id => {
+      const u = units.get(id);
+      if (!u) return null;
+      const nd = { id, unitData: u, children: [] };
+      (childrenMap.get(id) || []).forEach(cid => {
+        const cn = buildNode(cid);
+        if (cn) nd.children.push(cn);
+      });
+      return nd;
     };
 
-    const rootNodes = roots.map(rootId => buildNode(rootId)).filter(Boolean);
     return {
       id: '__ROOT__',
-      children: rootNodes
+      children: roots.map(r => buildNode(r)).filter(Boolean)
     };
   };
 
   useEffect(() => {
-    if (!data || !data.length || !svgRef.current || !containerRef.current) return;
+    if (!data?.length || !svgRef.current || !containerRef.current) return;
+    const { units, personToUnitsMap } = createFamilyUnits(data);
+    const hierarchyData = buildHierarchy(units, personToUnitsMap);
+    const root = d3.hierarchy(hierarchyData);
 
-    try {
-      // Создаем семейные единицы
-      const { units, personToUnitMap } = createFamilyUnits(data);
-      const hierarchyData = buildHierarchy(units, personToUnitMap);
-      const root = d3.hierarchy(hierarchyData);
+    const { clientWidth: w, clientHeight: h } = containerRef.current;
+    const svg = d3.select(svgRef.current)
+      .attr('width', w)
+      .attr('height', h)
+      .call(d3.zoom().scaleExtent([0.1, 5]).on('zoom', e => zoomG.attr('transform', e.transform)));
 
-      // Настраиваем размеры
-      const { clientWidth: width, clientHeight: height } = containerRef.current;
-      const svg = d3.select(svgRef.current)
-        .attr('width', width)
-        .attr('height', height)
-        .call(d3.zoom()
-          .scaleExtent([0.1, 5])
-          .on('zoom', e => zoomG.attr('transform', e.transform))
-        );
+    svg.selectAll('*').remove();
+    const zoomG = svg.append('g');
+    const g = zoomG.append('g').attr('transform', 'translate(50,50)');
 
-      svg.selectAll('*').remove();
-      const zoomG = svg.append('g');
-      const g = zoomG.append('g').attr('transform', `translate(50, 50)`);
+    const treeLayout = d3.tree().nodeSize([350, 200]).separation((a, b) => a.parent === b.parent ? 1.2 : 2.0);
+    const treeData = treeLayout(root);
 
-      // Конфигурация дерева
-      const treeLayout = d3.tree()
-        .nodeSize([220, 180])
-        .separation((a, b) => a.parent === b.parent ? 1.2 : 2.0);
+    // ссылки (рисуем все, у которых target.depth>0)
+    g.selectAll('.link')
+      .data(treeData.links().filter(d => d.target.depth > 0))
+      .enter().append('path')
+        .attr('class', 'link')
+        .attr('d', d3.linkVertical().x(d => d.x).y(d => d.y))
+        .attr('stroke', '#aaa').attr('fill', 'none').attr('stroke-width', 2);
 
-      const treeData = treeLayout(root);
+    // узлы (скрываем только корень)
+    const nodes = g.selectAll('.node')
+      .data(treeData.descendants().filter(d => d.depth > 0 && d.data.unitData), d => d.data.id)
+      .enter().append('g').attr('class', 'node').attr('transform', d => `translate(${d.x},${d.y})`);
 
-      // Рисуем связи
-      g.selectAll('.link')
-        .data(treeData.links().filter(l =>
-          l.source.data.id !== '__ROOT__' &&
-          l.target.data.id !== '__ROOT__'
-        ))
-        .enter().append('path')
-          .attr('class', 'link')
-          .attr('d', d3.linkVertical()
-            .x(d => d.x)
-            .y(d => d.y)
-          )
-          .attr('stroke', '#aaa')
-          .attr('fill', 'none')
-          .attr('stroke-width', 2);
+    nodes.each(function(d) {
+      const node = d3.select(this);
+      const u = d.data.unitData;
+      const CW = 70, CH = 70, R = 8, G = 30;
+      const total = CW + G;
+      const partners = u.type === 'couple' ? u.partners : [u.person];
+      const n = partners.length;
 
-      // Фильтруем узлы
-      const validNodes = treeData.descendants().filter(d =>
-        d.data.id !== '__ROOT__' &&
-        d.data.unitData
-      );
-
-      // Рисуем узлы
-      const nodes = g.selectAll('.node')
-        .data(validNodes, d => d.data.id)
-        .enter().append('g')
-          .attr('class', 'node')
-          .attr('transform', d => `translate(${d.x},${d.y})`);
-
-      // Обработка узлов
-      nodes.each(function(d) {
-        const node = d3.select(this);
-        const unit = d.data.unitData;
-        if (!unit) return;
-
-        const CARD_W = 100;
-        const CARD_H = 100;
-        const R = 8;
-        const SPOUSE_GAP = 20;
-
-        // Для супружеской пары
-        if (unit.type === 'couple') {
-          unit.partners.forEach((partner, i) => {
-            if (!partner) return;
-            
-            const offsetX = i === 0 ? -CARD_W - SPOUSE_GAP/2 : SPOUSE_GAP/2;
-            
-            // Карточка
-            node.append('rect')
-              .attr('x', offsetX)
-              .attr('y', -CARD_H/2)
-              .attr('width', CARD_W)
-              .attr('height', CARD_H)
-              .attr('rx', R)
-              .attr('ry', R)
-              .attr('fill', partner.gender === 'Male' ? '#4a90e2' : '#e24a90');
-            
-            // Инициалы
-            const nameParts = [partner.name, partner.surname].filter(Boolean);
-            const initials = nameParts.length > 0 
-              ? nameParts.map(n => n[0] || '').join('').toUpperCase() 
-              : '?';
-              
-            node.append('text')
-              .attr('x', offsetX + CARD_W/2)
-              .attr('y', 0)
-              .attr('text-anchor', 'middle')
-              .attr('dy', '0.35em')
-              .style('font-size', '20px')
-              .style('fill', '#fff')
-              .text(initials);
-              
-            // Имя
-            if (partner.name) {
-              node.append('text')
-                .attr('x', offsetX + CARD_W/2)
-                .attr('y', CARD_H/2 + 15)
-                .attr('text-anchor', 'middle')
-                .style('font-size', '12px')
-                .text(partner.name);
-            }
-              
-            // Год рождения
-            if (partner.birthdate?.year) {
-              node.append('text')
-                .attr('x', offsetX + CARD_W/2)
-                .attr('y', CARD_H/2 + 30)
-                .attr('text-anchor', 'middle')
-                .style('font-size', '10px')
-                .style('fill', '#666')
-                .text(partner.birthdate.year);
-            }
-          });
-          
-          // Линия между супругами
-          node.append('line')
-            .attr('x1', -SPOUSE_GAP/2)
-            .attr('y1', 0)
-            .attr('x2', SPOUSE_GAP/2)
-            .attr('y2', 0)
-            .attr('stroke', '#e24a90')
-            .attr('stroke-width', 2)
-            .attr('stroke-dasharray', '4 2');
-        } 
-        // Для одиночного человека
-        else if (unit.type === 'single' && unit.person) {
-          const person = unit.person;
-          
-          // Карточка
-          node.append('rect')
-            .attr('x', -CARD_W/2)
-            .attr('y', -CARD_H/2)
-            .attr('width', CARD_W)
-            .attr('height', CARD_H)
-            .attr('rx', R)
-            .attr('ry', R)
-            .attr('fill', person.gender === 'Male' ? '#4a90e2' : '#e24a90');
-            
-          // Инициалы
-          const nameParts = [person.name, person.surname].filter(Boolean);
-          const initials = nameParts.length > 0 
-            ? nameParts.map(n => n[0] || '').join('').toUpperCase() 
-            : '?';
-          
-          node.append('text')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('text-anchor', 'middle')
-            .attr('dy', '0.35em')
-            .style('font-size', '20px')
-            .style('fill', '#fff')
-            .text(initials);
-            
-          // Имя
-          if (person.name) {
-            node.append('text')
-              .attr('x', 0)
-              .attr('y', CARD_H/2 + 15)
-              .attr('text-anchor', 'middle')
-              .style('font-size', '12px')
-              .text(person.name);
-          }
-            
-          // Год рождения
-          if (person.birthdate?.year) {
-            node.append('text')
-              .attr('x', 0)
-              .attr('y', CARD_H/2 + 30)
-              .attr('text-anchor', 'middle')
-              .style('font-size', '10px')
-              .style('fill', '#666')
-              .text(person.birthdate.year);
-          }
-        }
+      partners.forEach((p, i) => {
+        const offset = (i - (n - 1) / 2) * total;
+        const rectX = offset - CW / 2;
+        node.append('rect')
+          .attr('x', rectX).attr('y', -CH/2)
+          .attr('width', CW).attr('height', CH)
+          .attr('rx', R).attr('ry', R)
+          .attr('fill', (p.gender === 'Male') ? '#4a90e2' : '#e24a90');
+        node.append('text')
+          .attr('x', offset).attr('y', 0)
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .style('font-size', '18px').style('fill', '#fff')
+          .text(`${p.name?.[0]||''}${p.surname?.[0]||''}`);
+        node.append('text')
+          .attr('x', offset).attr('y', CH/2 + 20)
+          .attr('text-anchor', 'middle')
+          .style('font-size', '14px').style('fill', '#000')
+          .text(p.name || '');
+        if (p.surname) node.append('text')
+          .attr('x', offset).attr('y', CH/2 + 40)
+          .attr('text-anchor', 'middle')
+          .style('font-size', '14px').style('fill', '#000')
+          .text(p.surname);
+        if (p.birthdate?.year) node.append('text')
+          .attr('x', offset).attr('y', CH/2 + 60)
+          .attr('text-anchor', 'middle')
+          .style('font-size', '12px').style('fill', '#000')
+          .text(p.birthdate.year);
       });
 
-      // Центрируем дерево
-      const bounds = svg.node().getBBox();
-      const dx = bounds.x;
-      const dy = bounds.y;
-      const w = bounds.width;
-      const h = bounds.height;
-      
-      zoomG.attr('transform', `translate(${width/2 - w/2 - dx},${height/2 - h/2 - dy})`);
-    } catch (error) {
-      console.error("Error rendering family tree:", error);
-    }
+      // линии между партнёрами
+      if (n > 1) {
+        for (let i = 0; i < n - 1; i++) {
+          const x1 = (i - (n - 1)/2) * total + CW/2;
+          const x2 = ((i + 1) - (n - 1)/2) * total - CW/2;
+          node.append('line')
+            .attr('x1', x1).attr('y1', 0)
+            .attr('x2', x2).attr('y2', 0)
+            .attr('stroke', 'red').attr('stroke-width', 2);
+        }
+      }
+    });
+
+    // центрируем
+    const bb = svg.node().getBBox();
+    zoomG.attr('transform', `translate(${w/2 - bb.width/2 - bb.x},${h/2 - bb.height/2 - bb.y})`);
   }, [data]);
 
   return (
