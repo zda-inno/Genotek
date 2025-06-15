@@ -181,6 +181,15 @@ wheels = [
 ]
 
 [[package]]
+name = "dnspython"
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/4a/263763cb2ba3816dd94b08ad3a33d5fdae34ecb856678773cc40a3605829/dnspython-2.7.0.tar.gz", hash = "sha256:ce9c432eda0dc91cf618a5cedf1a4e142651196bbcd2c80e89ed5a907e5cfaf1", size = 345197 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/1b/e0a87d256e40e8c888847551b20a017a6b98139178505dc7ffb96f04e954/dnspython-2.7.0-py3-none-any.whl", hash = "sha256:b4c34b7d10b51bcc3a5071e7b8dee77939f1e878477eeecc965e9835f63c6c86", size = 313632 },
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -226,10 +235,12 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
+    { name = "motor" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "passlib", extra = ["bcrypt"] },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "python-multipart" },
@@ -254,10 +265,12 @@ requires-dist = [
     { name = "flake8", marker = "extra == 'dev'" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.25.1" },
     { name = "isort", marker = "extra == 'dev'" },
+    { name = "motor", specifier = ">=3.3.1" },
     { name = "numpy" },
     { name = "pandas" },
     { name = "passlib", extras = ["bcrypt"], specifier = ">=1.7.4" },
     { name = "pydantic", specifier = ">=2.4.2" },
+    { name = "pydantic-settings", specifier = ">=2.0.3" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
@@ -371,6 +384,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e7/ff/0ffefdcac38932a54d2b5eed4e0ba8a408f215002cd178ad1df0f2806ff8/mccabe-0.7.0.tar.gz", hash = "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325", size = 9658 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/27/1a/1f68f9ba0c207934b35b86a8ca3aad8395a3d6dd7921c0686e23853ff5a9/mccabe-0.7.0-py2.py3-none-any.whl", hash = "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e", size = 7350 },
+]
+
+[[package]]
+name = "motor"
+version = "3.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pymongo" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/93/ae/96b88362d6a84cb372f7977750ac2a8aed7b2053eed260615df08d5c84f4/motor-3.7.1.tar.gz", hash = "sha256:27b4d46625c87928f331a6ca9d7c51c2f518ba0e270939d395bc1ddc89d64526", size = 280997 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/01/9a/35e053d4f442addf751ed20e0e922476508ee580786546d699b0567c4c67/motor-3.7.1-py3-none-any.whl", hash = "sha256:8a63b9049e38eeeb56b4fdd57c3312a6d1f25d01db717fe7d82222393c410298", size = 74996 },
 ]
 
 [[package]]
@@ -560,6 +585,20 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-settings"
+version = "2.9.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "python-dotenv" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/67/1d/42628a2c33e93f8e9acbde0d5d735fa0850f3e6a2f8cb1eb6c40b9a732ac/pydantic_settings-2.9.1.tar.gz", hash = "sha256:c509bf79d27563add44e8446233359004ed85066cd096d8b510f715e6ef5d268", size = 163234 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/5f/d6d641b490fd3ec2c4c13b4244d68deea3a1b970a97be64f34fb5504ff72/pydantic_settings-2.9.1-py3-none-any.whl", hash = "sha256:59b4f431b1defb26fe620c71a7d3968a710d719f5f4cdbbdb7926edeb770f6ef", size = 44356 },
+]
+
+[[package]]
 name = "pyflakes"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -575,6 +614,35 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/7c/2d/c3338d48ea6cc0feb8446d8e6937e1408088a72a39937982cc6111d17f84/pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f", size = 4968581 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/0b/9fcc47d19c48b59121088dd6da2488a49d5f72dacf8262e2790a1d2c7d15/pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c", size = 1225293 },
+]
+
+[[package]]
+name = "pymongo"
+version = "4.13.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dnspython" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/0c/1fb60383ab4b20566407b87f1a95b7f5cda83e8d5594da6fc84e2a543405/pymongo-4.13.0.tar.gz", hash = "sha256:92a06e3709e3c7e50820d352d3d4e60015406bcba69808937dac2a6d22226fde", size = 2166443 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/dc/9afa6091bce4adad7cad736dcdc35c139a9b551fc61032ef20c7ba17eae5/pymongo-4.13.0-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:92f5e75ae265e798be1a8a40a29e2ab934e156f3827ca0e1c47e69d43f4dcb31", size = 965996 },
+    { url = "https://files.pythonhosted.org/packages/36/69/e4242abffc0ee1501bb426d8a540e712e4f917491735f18622838b17f5a1/pymongo-4.13.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:3d631d879e934b46222f5092d8951cbb9fe83542649697c8d342ea7b5479f118", size = 965702 },
+    { url = "https://files.pythonhosted.org/packages/fc/3e/0732876b48b1285bada803f4b0d7da5b720cf8f778d2117bbed9e04473a3/pymongo-4.13.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:be048fb78e165243272a8cdbeb40d53eace82424b95417ab3ab6ec8e9b00c59b", size = 1953825 },
+    { url = "https://files.pythonhosted.org/packages/dc/3b/6713fed92cab64508a1fb8359397c0720202e5f36d7faf4ed71b05875180/pymongo-4.13.0-cp313-cp313-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:d81d159bd23d8ac53a6e819cccee991cb9350ab2541dfaa25aeb2f712d23b0a5", size = 2031179 },
+    { url = "https://files.pythonhosted.org/packages/89/2b/1aad904563c312a0dc2ff752acf0f11194f836304d6e15d05dff3a33df08/pymongo-4.13.0-cp313-cp313-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:8af08ba2886f08d334bc7e5d5c662c60ea2f16e813a2c35106f399463fa11087", size = 1995093 },
+    { url = "https://files.pythonhosted.org/packages/4c/cc/33786f4ce9a46c776f0d32601b353f8c42b552ea9ff8060c290c912b661e/pymongo-4.13.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b91f59137e46cd3ff17d5684a18e8006d65d0ee62eb1068b512262d1c2c5ae8", size = 1955820 },
+    { url = "https://files.pythonhosted.org/packages/2d/dd/9a2a87bd4aab12a2281ac20d179912eed824cc6f67df49edd87fa4879b3e/pymongo-4.13.0-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:61733c8f1ded90ab671a08033ee99b837073c73e505b3b3b633a55a0326e77f4", size = 1905394 },
+    { url = "https://files.pythonhosted.org/packages/04/be/0a70db5e4c4e1c162207e31eaa3debf98476e0265b154f6d2252f85969b0/pymongo-4.13.0-cp313-cp313-win32.whl", hash = "sha256:d10d3967e87c21869f084af5716d02626a17f6f9ccc9379fcbece5821c2a9fb4", size = 926840 },
+    { url = "https://files.pythonhosted.org/packages/dd/a6/fb104175a7f15dd69691c8c32bd4b99c4338ec89fe094b6895c940cf2afb/pymongo-4.13.0-cp313-cp313-win_amd64.whl", hash = "sha256:a9fe172e93551ddfdb94b9ad34dccebc4b7b680dc1d131bc6bd661c4a5b2945c", size = 949383 },
+    { url = "https://files.pythonhosted.org/packages/62/3f/c89a6121b0143fde431f04c267a0d49159b499f518630a43aa6288709749/pymongo-4.13.0-cp313-cp313t-macosx_10_13_x86_64.whl", hash = "sha256:5adc1349fd5c94d5dfbcbd1ad9858d1df61945a07f5905dcf17bb62eb4c81f93", size = 1022500 },
+    { url = "https://files.pythonhosted.org/packages/4b/89/8fc36b83768b44805dd3a1caf755f019b110d2111671950b39c8c7781cd9/pymongo-4.13.0-cp313-cp313t-macosx_11_0_arm64.whl", hash = "sha256:8e11ea726ff8ddc8c8393895cd7e93a57e2558c27273d3712797895c53d25692", size = 1022503 },
+    { url = "https://files.pythonhosted.org/packages/67/dc/f216cf6218f8ceb4025fd10e3de486553bd5373c3b71a45fef3483b745bb/pymongo-4.13.0-cp313-cp313t-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:c02160ab3a67eca393a2a2bb83dccddf4db2196d0d7c6a980a55157e4bdadc06", size = 2282184 },
+    { url = "https://files.pythonhosted.org/packages/56/32/08a9045dbcd76a25d36a0bd42c635b56d9aed47126bcca0e630a63e08444/pymongo-4.13.0-cp313-cp313t-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:fca24e4df05501420b2ce2207c03f21fcbdfac1e3f41e312e61b8f416c5b4963", size = 2369224 },
+    { url = "https://files.pythonhosted.org/packages/16/63/7991853fa6cf5e52222f8f480081840fb452d78c1dcd6803cabe2d3557a6/pymongo-4.13.0-cp313-cp313t-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:50c503b7e809e54740704ec4c87a0f2ccdb910c3b1d36c07dbd2029b6eaa6a50", size = 2328611 },
+    { url = "https://files.pythonhosted.org/packages/e9/0f/11beecc8d48c7549db3f13f2101fd1c06ccb668697d33a6a5a05bb955574/pymongo-4.13.0-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:66800de4f4487e7c437991b44bc1e717aadaf06e67451a760efe5cd81ce86575", size = 2279806 },
+    { url = "https://files.pythonhosted.org/packages/17/a7/0358efc8dba796545e9bd4642d1337a9b67b60928c583799fb0726594855/pymongo-4.13.0-cp313-cp313t-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:82c36928c1c26580ce4f2497a6875968636e87c77108ff253d76b1355181a405", size = 2219131 },
+    { url = "https://files.pythonhosted.org/packages/58/d5/373cd1cd21eff769e22e4e0924dcbfd770dfa1298566d51a7097857267fc/pymongo-4.13.0-cp313-cp313t-win32.whl", hash = "sha256:1397eac713b84946210ab556666cfdd787eee824e910fbbe661d147e110ec516", size = 975711 },
+    { url = "https://files.pythonhosted.org/packages/b0/39/1e204091bdf264a0d9eccc21f7da099903a7a30045f055a91178686c0259/pymongo-4.13.0-cp313-cp313t-win_amd64.whl", hash = "sha256:99a52cfbf31579cc63c926048cd0ada6f96c98c1c4c211356193e07418e6207c", size = 1004287 },
 ]
 
 [[package]]
